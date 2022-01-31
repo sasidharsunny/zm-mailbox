@@ -55,6 +55,7 @@ import com.google.common.collect.Multimaps;
 import com.google.common.collect.SetMultimap;
 import com.google.common.collect.Sets;
 import com.zimbra.common.localconfig.DebugConfig;
+import com.zimbra.common.mailbox.FolderConstants;
 import com.zimbra.common.service.ServiceException;
 import com.zimbra.common.util.Constants;
 import com.zimbra.common.util.ListUtil;
@@ -4261,6 +4262,7 @@ public class DbMailItem {
     }
 
     /**
+     * The query returns remote calendar folder all visible and deleted items
      * @param lastSync  last synced time of appointment - int - date in seconds from epoch
      */
     private static PreparedStatement calendarItemStatement(DbConnection conn, String fields,
@@ -4281,8 +4283,9 @@ public class DbMailItem {
                 " FROM " + getCalendarItemTableName(mbox, "ci") + ", " + getMailItemTableName(mbox, "mi") +
                 " WHERE mi.id = ci.item_id" + lastSyncConstraint + " AND mi." + typeConstraint +
                 (DebugConfig.disableMailboxGroups? "" : " AND ci.mailbox_id = ? AND mi.mailbox_id = ci.mailbox_id") +
-                (folderSpecified ? " AND folder_id = ?" : "") + excludeFolderPart + orderByConstraint);
-
+                (folderSpecified ? " AND ( folder_id = ? OR (folder_id = '"+ FolderConstants.ID_FOLDER_TRASH + "' AND prev_folders LIKE ? ))" : "") +
+                excludeFolderPart + orderByConstraint);
+        
         int pos = 1;
         if (lastSync < 0) {
             lastSync = 0;
@@ -4291,12 +4294,14 @@ public class DbMailItem {
         pos = setMailboxId(stmt, mbox, pos);
         if (folderSpecified) {
             stmt.setInt(pos++, folderId);
+            stmt.setString(pos++, "%:"+folderId);
         }
         if (excludeFolderIds != null) {
             for (int id : excludeFolderIds) {
                 stmt.setInt(pos++, id);
             }
         }
+        
         return stmt;
     }
 
