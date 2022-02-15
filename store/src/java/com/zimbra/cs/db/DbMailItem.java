@@ -4301,7 +4301,6 @@ public class DbMailItem {
                 stmt.setInt(pos++, id);
             }
         }
-        
         return stmt;
     }
 
