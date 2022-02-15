@@ -110,5 +110,9 @@ workflows:
       - test:
           requires:
             - build
+      - deploy:     
+          type: approval 
+          requires: 
+            - test
           <<: *filter_branches
 ############################################################################
